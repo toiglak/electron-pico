@@ -14,7 +14,7 @@ concurrency:
 env:
   ELECTRON_BRANCH: main
   GN_OUT_DIR: pico-release
-  DEPOT_TOOLS_UPDATE: 0
+  DEPOT_TOOLS_UPDATE: 1
   GIT_TERMINAL_PROMPT: 0
   GCM_INTERACTIVE: never
 
@@ -76,9 +76,16 @@ jobs:
 
       - name: Initialize build config
         run: |
-          # Initialize with release profile first to establish the workspace structure
+          # 1. Create the target directory structure for the custom args file
+          mkdir -p ${{ github.workspace }}/electron/src/electron/build/args
+          
+          # 2. Install our custom pico.gn args file
+          cp pico.gn ${{ github.workspace }}/electron/src/electron/build/args/pico.gn
+          
+          # 3. Initialize with 'pico' profile immediately.
+          # This establishes the workspace structure and points the config to our custom args.
           e init pico-release \
-            -i release \
+            -i pico \
             -o ${{ env.GN_OUT_DIR }} \
             --root ${{ github.workspace }}/electron \
             --target-cpu arm64 \
@@ -129,21 +136,6 @@ jobs:
           echo "::group::Disk state after sync"
           df -h /
           echo "::endgroup::"
-
-      - name: Install pico.gn
-        run: cp pico.gn ${{ github.workspace }}/electron/src/electron/build/args/pico.gn
-
-      - name: Reconfigure for pico build
-        run: |
-          # Now switch the config to 'pico' using the local pico.gn just installed
-          e init pico-release \
-            -i pico \
-            -o ${{ env.GN_OUT_DIR }} \
-            --root ${{ github.workspace }}/electron \
-            --target-cpu arm64 \
-            --remote-build none \
-            --use-https \
-            -f
 
       - name: Generate build files
         run: e build --only-gen
