@@ -1,0 +1,108 @@
+name: Build Electron Pico (macOS Only)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ELECTRON_BRANCH: main
+  GN_OUT_DIR: pico-release
+  DEPOT_TOOLS_UPDATE: 0
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Free disk space
+        run: |
+          echo "::group::Disk before cleanup"
+          df -h /
+          echo "::endgroup::"
+          sudo rm -rf /Applications/Xcode_13*.app 2>/dev/null || true
+          sudo rm -rf /Applications/Xcode_14*.app 2>/dev/null || true
+          sudo rm -rf /usr/local/share/powershell 2>/dev/null || true
+          sudo rm -rf /usr/local/lib/node_modules 2>/dev/null || true
+          echo "::group::Disk after cleanup"
+          df -h /
+          echo "::endgroup::"
+
+      - name: Checkout electron-pico
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install build-tools
+        run: npm install -g @electron/build-tools
+
+      - name: Initialize build config
+        run: |
+          e init pico-release \
+            -i release \
+            --root ${{ github.workspace }}/electron \
+            --remote-build none \
+            --use-https \
+            -f
+
+      - name: Sync source code
+        run: e sync --verbose
+
+      - name: Install pico.gn
+        run: cp pico.gn ${{ github.workspace }}/electron/src/electron/build/args/pico.gn
+
+      - name: Reconfigure for pico build
+        run: |
+          e init pico-release \
+            -i pico \
+            --root ${{ github.workspace }}/electron \
+            --remote-build none \
+            --use-https \
+            -f
+
+      - name: Generate build files
+        run: e build --only-gen
+
+      - name: Build Electron
+        run: e build
+
+      - name: Build dist zip
+        run: e build --target //electron:electron_dist_zip
+
+      - name: Prepare Patterned Artifact for electron-builder
+        run: |
+          mkdir -p dist-target
+          OUT_DIR="${{ github.workspace }}/electron/src/out/${{ env.GN_OUT_DIR }}"
+          
+          # Extract version from Electron source
+          VERSION=$(node -p "require('${{ github.workspace }}/electron/src/electron/package.json').version")
+          echo "ELECTRON_VERSION=$VERSION" >> $GITHUB_ENV
+          
+          # Target pattern: electron-v${version}-${platformName}-${arch}.zip
+          # For macOS arm64: electron-vX.Y.Z-darwin-arm64.zip
+          cp "${OUT_DIR}/dist.zip" "dist-target/electron-v${VERSION}-darwin-arm64.zip"
+          
+          # Also provide a version file for convenience
+          echo "v${VERSION}" > "dist-target/version"
+          
+          # Record binary size
+          du -sh "${OUT_DIR}/Electron.app" > "dist-target/size-report.txt"
+          du -sh "dist-target/electron-v${VERSION}-darwin-arm64.zip" >> "dist-target/size-report.txt"
+
+      - name: Upload patterned artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-pico-dist-v${{ env.ELECTRON_VERSION }}
+          path: dist-target/
+          retention-days: 30
+          if-no-files-found: error

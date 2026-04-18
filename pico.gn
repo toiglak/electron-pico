@@ -1,0 +1,151 @@
+# electron-pico: Extreme minimal Electron build
+# =============================================
+# Goal: The smallest possible Electron binary that can run a textarea notepad.
+# Import official release args first, then override/disable everything we can.
+#
+# NOTE: This file is cross-platform. Platform-specific args (Linux dbus/cups/gtk
+# etc.) are injected by the CI workflow via extra GN args, NOT placed here,
+# because GN with is_official_build=true rejects unknown args per-platform.
+
+import("//electron/build/args/release.gn")
+
+# ===========================================================================
+# RELEASE OPTIMIZATIONS
+# ===========================================================================
+# release.gn already sets: is_official_build=true, is_component_build=false,
+# is_component_ffmpeg=true. We override/extend:
+
+is_debug = false
+symbol_level = 0
+dcheck_always_on = false
+
+# Optimization: favor size over absolute peak performance
+optimize_for_size = true
+
+# LTO for maximum binary size reduction
+use_thin_lto = true
+thin_lto_enable_optimizations = true
+strip_absolute_paths_from_debug_symbols = true
+exclude_unwind_tables = true
+enable_iterator_debugging = false
+
+# Static-link ffmpeg instead of shared lib (smaller total)
+is_component_ffmpeg = false
+
+# Treat this like a real shipping build (no field trial testing configs)
+fieldtrial_testing_like_official_build = true
+
+# ===========================================================================
+# FEATURE DENY LIST — disable everything unnecessary
+# ===========================================================================
+
+# --- Printing ---
+enable_printing = false
+
+# --- Spellcheck ---
+enable_spellcheck = false
+
+# --- WebRTC (video/audio calls) ---
+enable_webrtc = false
+
+# --- Extensions / Chrome Apps ---
+enable_extensions = false
+
+# --- PDF viewer ---
+enable_pdf = false
+
+# --- Media / Codecs ---
+# Override all.gn: we don't need proprietary codecs for a text editor
+proprietary_codecs = false
+ffmpeg_branding = "Chromium"
+enable_library_cdms = false
+
+# --- Widevine DRM ---
+enable_widevine = false
+
+# --- WebXR / VR / AR ---
+enable_vr = false
+enable_openxr = false
+
+# --- Vulkan / Dawn / WebGPU ---
+enable_vulkan = false
+use_dawn = false
+angle_enable_vulkan = false
+angle_enable_vulkan_validation_layers = false
+dawn_enable_vulkan_validation_layers = false
+
+# --- Swiftshader (software GPU fallback) ---
+enable_swiftshader = false
+
+# --- NaCl (legacy, deprecated) ---
+enable_nacl = false
+
+# --- Safe Browsing ---
+safe_browsing_mode = 0
+
+# --- Paint Preview ---
+enable_paint_preview = false
+
+# --- Pseudolocales (i18n testing) ---
+enable_pseudolocales = false
+
+# --- Installer ---
+enable_linux_installer = false
+
+# --- PDF save to Drive ---
+enable_pdf_save_to_drive = false
+
+# --- Enterprise cloud content analysis ---
+enterprise_cloud_content_analysis = false
+
+# --- Plugins (NPAPI/PPAPI) ---
+enable_plugins = false
+
+# --- Media remoting (Chromecast-style) ---
+enable_media_remoting = false
+
+# --- Screen AI / Accessibility extras ---
+# (core a11y is kept, only extras are removed)
+
+# --- Reporting API ---
+enable_reporting = false
+
+# --- Background tracing ---
+enable_background_tracing = false
+
+# --- Click to Call ---
+enable_click_to_call = false
+
+# --- Supervised users ---
+enable_supervised_users = false
+
+# --- Hangout services extension ---
+enable_hangout_services_extension = false
+
+# --- Speech recognition service ---
+enable_speech_service = false
+
+# --- HLS demuxer ---
+enable_hls_demuxer = false
+
+# --- Privacy / Chrome-specific Extras ---
+enable_captive_portal_detection = false
+enable_session_service = true
+enable_identity_client = false
+enable_background_mode = false
+enable_offline_pages = false
+enable_screen_ai = false
+
+# --- Communication / Messaging ---
+enable_message_center = false
+enable_service_discovery = false
+enable_mdns = false
+enable_runtime_tracing = false
+
+# ===========================================================================
+# ELECTRON-SPECIFIC (from all.gn)
+# ===========================================================================
+# Note: These are already set by import("//electron/build/args/release.gn")
+# which imports all.gn. We omit them here to let the build system manage
+# ABI versions and core constants automatically.
+

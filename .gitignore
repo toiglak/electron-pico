@@ -1,0 +1,19 @@
+# Chromium checkout (huge)
+electron/src/
+
+# gclient managed
+electron/.gclient_entries
+electron/.gclient_previous_sync_commits
+
+# Build artifacts
+electron/src/out/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+
+# Misc
+*.log
