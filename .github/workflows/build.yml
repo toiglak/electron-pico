@@ -27,11 +27,17 @@ jobs:
           echo "::group::Disk before cleanup"
           df -h /
           echo "::endgroup::"
-          # Aggressive cleanup for macOS runners
+          
+          # Scorched earth: Remove everything not needed for building Electron
           sudo rm -rf /Applications/Xcode_13* /Applications/Xcode_14* /Applications/Xcode_15.[0-5]* 2>/dev/null || true
           sudo rm -rf /Library/Developer/CoreSimulator /Users/runner/Library/Developer/CoreSimulator 2>/dev/null || true
           sudo rm -rf /usr/local/share/dotnet /opt/ghc /usr/local/lib/node_modules 2>/dev/null || true
           sudo rm -rf /Users/runner/Library/Android 2>/dev/null || true
+          sudo rm -rf /usr/local/Homebrew /usr/local/Cellar 2>/dev/null || true
+          
+          # Remove other pre-installed runtimes
+          sudo rm -rf /usr/local/share/powershell /usr/share/swift /usr/local/share/boost 2>/dev/null || true
+          
           echo "::group::Disk after cleanup"
           df -h /
           echo "::endgroup::"
@@ -67,6 +73,7 @@ jobs:
           rm -rf ${{ github.workspace }}/electron/src/content/test/data
           rm -rf ${{ github.workspace }}/electron/src/media/test/data
           rm -rf ${{ github.workspace }}/electron/src/chrome/test/data
+          rm -rf ${{ github.workspace }}/electron/src/v8/test
           echo "Cleanup complete."
           echo "::endgroup::"
           
@@ -90,6 +97,15 @@ jobs:
       - name: Build Electron
         run: e build
 
+      - name: Purge build objects before zipping
+        run: |
+          echo "Building finished. Purging obj/ folder to free up ~30GB for the zip operation."
+          OUT_DIR="${{ github.workspace }}/electron/src/out/${{ env.GN_OUT_DIR }}"
+          # We ONLY need the linked .app and the dist files. We DON'T need the .o files anymore.
+          rm -rf "${OUT_DIR}/obj"
+          rm -rf "${OUT_DIR}/gen"
+          df -h /
+
       - name: Build dist zip
         run: e build --target //electron:electron_dist_zip
 
@@ -103,13 +119,10 @@ jobs:
           echo "ELECTRON_VERSION=$VERSION" >> $GITHUB_ENV
           
           # Target pattern: electron-v${version}-${platformName}-${arch}.zip
-          # For macOS arm64: electron-vX.Y.Z-darwin-arm64.zip
           cp "${OUT_DIR}/dist.zip" "dist-target/electron-v${VERSION}-darwin-arm64.zip"
           
-          # Also provide a version file for convenience
+          # Version and Size reports
           echo "v${VERSION}" > "dist-target/version"
-          
-          # Record binary size
           du -sh "${OUT_DIR}/Electron.app" > "dist-target/size-report.txt"
           du -sh "dist-target/electron-v${VERSION}-darwin-arm64.zip" >> "dist-target/size-report.txt"
 

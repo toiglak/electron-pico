@@ -54,6 +54,7 @@ icu_use_data_file = false
 
 # --- Printing ---
 enable_printing = false
+enable_print_preview = false
 
 # --- Spellcheck ---
 enable_spellcheck = false
@@ -160,6 +161,7 @@ enable_screen_ai = false
 
 # --- Communication / Messaging ---
 enable_message_center = false
+enable_chrome_notifications = false
 enable_service_discovery = false
 enable_mdns = false
 enable_runtime_tracing = false
