@@ -100,27 +100,26 @@ jobs:
           cd ${{ github.workspace }}/electron
 
           # Hardcode .gclient to skip several GBs of unnecessary test data
-          cat > .gclient <<EOF
-solutions = [
-  {
-    "name": "src/electron",
-    "url": "https://github.com/electron/electron",
-    "managed": False,
-    "custom_deps": {
-      "src/third_party/blink/web_tests": None,
-      "src/content/test/data": None,
-      "src/media/test/data": None,
-      "src/chrome/test/data": None,
-      "src/v8/test": None,
-      "src/third_party/hunspell_dictionaries": None,
-      "src/chrome/browser/resources/media_router/extension/test/data": None,
-      "src/third_party/breakpad/breakpad/src/processor/testdata": None,
-    },
-    "custom_vars": {},
-  },
-]
-target_os = ["mac"]
-EOF
+          printf "%s\n" \
+            'solutions = [' \
+            '  {' \
+            '    "name": "src/electron",' \
+            '    "url": "https://github.com/electron/electron",' \
+            '    "managed": False,' \
+            '    "custom_deps": {' \
+            '      "src/third_party/blink/web_tests": None,' \
+            '      "src/content/test/data": None,' \
+            '      "src/media/test/data": None,' \
+            '      "src/chrome/test/data": None,' \
+            '      "src/v8/test": None,' \
+            '      "src/third_party/hunspell_dictionaries": None,' \
+            '      "src/chrome/browser/resources/media_router/extension/test/data": None,' \
+            '      "src/third_party/breakpad/breakpad/src/processor/testdata": None,' \
+            '    },' \
+            '    "custom_vars": {},' \
+            '  },' \
+            ']' \
+            'target_os = ["mac"]' > .gclient
 
           e d gclient sync \
             --force \
