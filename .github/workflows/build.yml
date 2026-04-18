@@ -15,6 +15,8 @@ env:
   ELECTRON_BRANCH: main
   GN_OUT_DIR: pico-release
   DEPOT_TOOLS_UPDATE: 0
+  GIT_TERMINAL_PROMPT: 0
+  GCM_INTERACTIVE: never
 
 jobs:
   build-macos:
@@ -55,6 +57,7 @@ jobs:
 
       - name: Initialize build config
         run: |
+          # Initialize with release profile first to establish the workspace structure
           e init pico-release \
             -i release \
             --root ${{ github.workspace }}/electron \
@@ -62,10 +65,18 @@ jobs:
             --use-https \
             -f
 
+          # OPTIMIZATION: Restrict sync to macOS only. 
+          # This saves ~10GB and prevents gclient from stalling on Android/Windows deps.
+          sed -i '' "s/target_os = \[\]/target_os = ['mac']/g" ${{ github.workspace }}/electron/.gclient
+          
       - name: Sync source code
         run: |
-          # Use --no-history and --shallow to save ~5-8GB of git metadata
-          e sync --verbose --no-history --shallow
+          echo "::group::Disk state before sync"
+          df -h /
+          echo "::endgroup::"
+
+          # Using --verbose to trace stalls, and --force/--no-history for space optimization
+          e sync --force --no-history --shallow --verbose
           
           echo "::group::Nuclear Cleanup of Test Data"
           # These folders contain GBs of images/videos/tests we don't need for release
@@ -84,6 +95,7 @@ jobs:
 
       - name: Reconfigure for pico build
         run: |
+          # Now switch the config to 'pico' using the local pico.gn just installed
           e init pico-release \
             -i pico \
             --root ${{ github.workspace }}/electron \
