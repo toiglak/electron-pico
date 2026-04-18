@@ -30,11 +30,25 @@ jobs:
           df -h /
           echo "::endgroup::"
           
-          # Scorched earth: Remove everything not needed for building Electron
-          sudo rm -rf /Applications/Xcode_13* /Applications/Xcode_14* /Applications/Xcode_15.[0-5]* 2>/dev/null || true
+          # 1. Surgical Xcode cleanup: Keep the currently selected Xcode, delete the rest.
+          # GitHub macos-14 runners usually have one or two versions.
+          CURRENT_XCODE=$(xcode-select -p)
+          echo "Current Xcode: $CURRENT_XCODE"
+          
+          # Delete known old versions that are NOT the current one
+          for version in 13 14 15.0 15.1 15.2 15.3; do
+            XCODE_PATH="/Applications/Xcode_${version}.app"
+            if [ -d "$XCODE_PATH" ] && [[ "$CURRENT_XCODE" != "$XCODE_PATH"* ]]; then
+              echo "Removing $XCODE_PATH"
+              sudo rm -rf "$XCODE_PATH"
+            fi
+          done
+
+          # 2. Purge other large unused runtimes and SDKs
           sudo rm -rf /Library/Developer/CoreSimulator /Users/runner/Library/Developer/CoreSimulator 2>/dev/null || true
           sudo rm -rf /usr/local/share/dotnet /opt/ghc /usr/local/lib/node_modules 2>/dev/null || true
           sudo rm -rf /Users/runner/Library/Android 2>/dev/null || true
+          
           # ARM-specific: Homebrew on M1 is in /opt/homebrew
           sudo rm -rf /opt/homebrew /usr/local/Homebrew /usr/local/Cellar 2>/dev/null || true
           
@@ -42,6 +56,9 @@ jobs:
           sudo rm -rf /usr/local/share/powershell /usr/share/swift /usr/local/share/boost 2>/dev/null || true
           sudo rm -rf /Library/Frameworks/Mono.framework /Library/Frameworks/Xamarin.Mac.framework 2>/dev/null || true
           
+          # 3. Ensure Rosetta 2 is installed (recommended by Electron docs for Arm64)
+          sudo softwareupdate --install-rosetta --agree-to-license || true
+
           echo "::group::Disk after cleanup"
           df -h /
           echo "::endgroup::"
@@ -64,6 +81,7 @@ jobs:
             -i release \
             -o ${{ env.GN_OUT_DIR }} \
             --root ${{ github.workspace }}/electron \
+            --target-cpu arm64 \
             --remote-build none \
             --use-https \
             -f
@@ -125,6 +143,7 @@ EOF
             -i pico \
             -o ${{ env.GN_OUT_DIR }} \
             --root ${{ github.workspace }}/electron \
+            --target-cpu arm64 \
             --remote-build none \
             --use-https \
             -f
