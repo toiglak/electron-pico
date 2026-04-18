@@ -65,10 +65,6 @@ jobs:
             --use-https \
             -f
 
-          # OPTIMIZATION: Restrict sync to macOS only. 
-          # This saves ~10GB and prevents gclient from stalling on Android/Windows deps.
-          sed -i '' "s/target_os = \[\]/target_os = ['mac']/g" ${{ github.workspace }}/electron/.gclient
-          
       - name: Sync source code
         run: |
           echo "::group::Disk state before sync"
@@ -80,7 +76,13 @@ jobs:
           #    (which are forced by 'e sync' and causing timeouts/failures due to repo size).
           # 2. Set --cache-dir=None to disable the git-cache and avoid the 'depth 10000' fetch.
           # 3. Use --force, --no-history, and --shallow for the most efficient build footprint.
-          cd ${{ github.workspace }}/electron/src
+          cd ${{ github.workspace }}/electron
+
+          # Ensure target_os is restricted to 'mac' to save ~10GB of bandwidth/space
+          if ! grep -q "target_os" .gclient; then
+            echo "target_os = ['mac']" >> .gclient
+          fi
+
           e dtools gclient sync \
             --force \
             --no-history \
@@ -119,17 +121,16 @@ jobs:
       - name: Build Electron
         run: e build
 
-      - name: Purge build objects before zipping
-        run: |
-          echo "Building finished. Purging obj/ folder to free up ~30GB for the zip operation."
-          OUT_DIR="${{ github.workspace }}/electron/src/out/${{ env.GN_OUT_DIR }}"
-          # We ONLY need the linked .app and the dist files. We DON'T need the .o files anymore.
-          rm -rf "${OUT_DIR}/obj"
-          rm -rf "${OUT_DIR}/gen"
-          df -h /
-
       - name: Build dist zip
         run: e build --target //electron:electron_dist_zip
+
+      - name: Purge build objects to free space
+        run: |
+          echo "Zipping finished. Purging obj/ folder to free up ~30GB for the next steps."
+          OUT_DIR="${{ github.workspace }}/electron/src/out/${{ env.GN_OUT_DIR }}"
+          rm -rf "${OUT_DIR}/obj"
+          # Keep 'gen' just in case it's needed for the upload path or version checking
+          df -h /
 
       - name: Prepare Patterned Artifact for electron-builder
         run: |
