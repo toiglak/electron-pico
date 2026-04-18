@@ -85,6 +85,8 @@ enable_libvpx = false
 use_libvpx = false
 enable_webvtt = false
 enable_media_remoting = false
+enable_cdm = false
+enable_cast_receiver = false
 
 # --- WebXR / VR / AR ---
 enable_vr = false
@@ -125,7 +127,7 @@ enterprise_cloud_content_analysis = false
 enable_plugins = false
 
 # --- Media remoting (Chromecast-style) ---
-enable_media_remoting = false
+# Removed duplicate enable_media_remoting
 
 # --- Screen AI / Accessibility extras ---
 # (core a11y is kept, only extras are removed)
@@ -170,6 +172,8 @@ enable_remoting = false
 # --- Resources ---
 enable_resource_allowlist_generation = true
 optimize_webui = true
+use_viz_debugger = false
+v8_enable_webassembly = false
 
 # ===========================================================================
 # ELECTRON-SPECIFIC (from all.gn)

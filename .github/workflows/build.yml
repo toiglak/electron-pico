@@ -35,10 +35,12 @@ jobs:
           sudo rm -rf /Library/Developer/CoreSimulator /Users/runner/Library/Developer/CoreSimulator 2>/dev/null || true
           sudo rm -rf /usr/local/share/dotnet /opt/ghc /usr/local/lib/node_modules 2>/dev/null || true
           sudo rm -rf /Users/runner/Library/Android 2>/dev/null || true
-          sudo rm -rf /usr/local/Homebrew /usr/local/Cellar 2>/dev/null || true
+          # ARM-specific: Homebrew on M1 is in /opt/homebrew
+          sudo rm -rf /opt/homebrew /usr/local/Homebrew /usr/local/Cellar 2>/dev/null || true
           
           # Remove other pre-installed runtimes
           sudo rm -rf /usr/local/share/powershell /usr/share/swift /usr/local/share/boost 2>/dev/null || true
+          sudo rm -rf /Library/Frameworks/Mono.framework /Library/Frameworks/Xamarin.Mac.framework 2>/dev/null || true
           
           echo "::group::Disk after cleanup"
           df -h /
@@ -60,6 +62,7 @@ jobs:
           # Initialize with release profile first to establish the workspace structure
           e init pico-release \
             -i release \
+            -o ${{ env.GN_OUT_DIR }} \
             --root ${{ github.workspace }}/electron \
             --remote-build none \
             --use-https \
@@ -72,35 +75,45 @@ jobs:
           echo "::endgroup::"
 
           # Hardening the sync:
-          # 1. Use gclient directly via 'e dtools' to avoid --with_branch_heads and --with_tags 
+          # 1. Use gclient directly via 'e d' to avoid --with_branch_heads and --with_tags 
           #    (which are forced by 'e sync' and causing timeouts/failures due to repo size).
           # 2. Set --cache-dir=None to disable the git-cache and avoid the 'depth 10000' fetch.
           # 3. Use --force, --no-history, and --shallow for the most efficient build footprint.
           cd ${{ github.workspace }}/electron
 
-          # Ensure target_os is restricted to 'mac' to save ~10GB of bandwidth/space
-          if ! grep -q "target_os" .gclient; then
-            echo "target_os = ['mac']" >> .gclient
-          fi
+          # Hardcode .gclient to skip several GBs of unnecessary test data
+          cat > .gclient <<EOF
+solutions = [
+  {
+    "name": "src/electron",
+    "url": "https://github.com/electron/electron",
+    "managed": False,
+    "custom_deps": {
+      "src/third_party/blink/web_tests": None,
+      "src/content/test/data": None,
+      "src/media/test/data": None,
+      "src/chrome/test/data": None,
+      "src/v8/test": None,
+      "src/third_party/hunspell_dictionaries": None,
+      "src/chrome/browser/resources/media_router/extension/test/data": None,
+      "src/third_party/breakpad/breakpad/src/processor/testdata": None,
+    },
+    "custom_vars": {},
+  },
+]
+target_os = ["mac"]
+EOF
 
-          e dtools gclient sync \
+          e d gclient sync \
             --force \
             --no-history \
             --shallow \
             --cache-dir=None \
             --verbose
           
-          echo "::group::Nuclear Cleanup of Test Data"
-          # These folders contain GBs of images/videos/tests we don't need for release
-          rm -rf ${{ github.workspace }}/electron/src/third_party/blink/web_tests
-          rm -rf ${{ github.workspace }}/electron/src/content/test/data
-          rm -rf ${{ github.workspace }}/electron/src/media/test/data
-          rm -rf ${{ github.workspace }}/electron/src/chrome/test/data
-          rm -rf ${{ github.workspace }}/electron/src/v8/test
-          echo "Cleanup complete."
-          echo "::endgroup::"
-          
+          echo "::group::Disk state after sync"
           df -h /
+          echo "::endgroup::"
 
       - name: Install pico.gn
         run: cp pico.gn ${{ github.workspace }}/electron/src/electron/build/args/pico.gn
@@ -110,6 +123,7 @@ jobs:
           # Now switch the config to 'pico' using the local pico.gn just installed
           e init pico-release \
             -i pico \
+            -o ${{ env.GN_OUT_DIR }} \
             --root ${{ github.workspace }}/electron \
             --remote-build none \
             --use-https \
