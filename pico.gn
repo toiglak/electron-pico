@@ -18,6 +18,7 @@ import("//electron/build/args/release.gn")
 is_debug = false
 symbol_level = 0
 dcheck_always_on = false
+enable_dsyms = false
 
 # Optimization: favor size over absolute peak performance
 optimize_for_size = true
@@ -32,8 +33,20 @@ enable_iterator_debugging = false
 # Static-link ffmpeg instead of shared lib (smaller total)
 is_component_ffmpeg = false
 
+# Even more aggressive symbol stripping
+blink_symbol_level = 0
+v8_symbol_level = 0
+v8_enable_debugging_features = false
+
+# Disable Rust (saves space and toolchain complexity)
+enable_rust = false
+
 # Treat this like a real shipping build (no field trial testing configs)
 fieldtrial_testing_like_official_build = true
+
+# Extreme: Disable i18n (JS Intl APIs) to shave off ICU data
+v8_enable_i18n_support = false
+icu_use_data_file = false
 
 # ===========================================================================
 # FEATURE DENY LIST — disable everything unnecessary
@@ -62,6 +75,15 @@ enable_library_cdms = false
 
 # --- Widevine DRM ---
 enable_widevine = false
+
+# --- Video/Audio Codec reduction ---
+enable_av1 = false
+enable_dav1d_decoder = false
+enable_vpx = false
+enable_libvpx = false
+use_libvpx = false
+enable_webvtt = false
+enable_media_remoting = false
 
 # --- WebXR / VR / AR ---
 enable_vr = false
@@ -141,6 +163,11 @@ enable_message_center = false
 enable_service_discovery = false
 enable_mdns = false
 enable_runtime_tracing = false
+enable_remoting = false
+
+# --- Resources ---
+enable_resource_allowlist_generation = true
+optimize_webui = true
 
 # ===========================================================================
 # ELECTRON-SPECIFIC (from all.gn)

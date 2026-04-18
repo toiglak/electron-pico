@@ -27,10 +27,11 @@ jobs:
           echo "::group::Disk before cleanup"
           df -h /
           echo "::endgroup::"
-          sudo rm -rf /Applications/Xcode_13*.app 2>/dev/null || true
-          sudo rm -rf /Applications/Xcode_14*.app 2>/dev/null || true
-          sudo rm -rf /usr/local/share/powershell 2>/dev/null || true
-          sudo rm -rf /usr/local/lib/node_modules 2>/dev/null || true
+          # Aggressive cleanup for macOS runners
+          sudo rm -rf /Applications/Xcode_13* /Applications/Xcode_14* /Applications/Xcode_15.[0-5]* 2>/dev/null || true
+          sudo rm -rf /Library/Developer/CoreSimulator /Users/runner/Library/Developer/CoreSimulator 2>/dev/null || true
+          sudo rm -rf /usr/local/share/dotnet /opt/ghc /usr/local/lib/node_modules 2>/dev/null || true
+          sudo rm -rf /Users/runner/Library/Android 2>/dev/null || true
           echo "::group::Disk after cleanup"
           df -h /
           echo "::endgroup::"
@@ -56,7 +57,20 @@ jobs:
             -f
 
       - name: Sync source code
-        run: e sync --verbose
+        run: |
+          # Use --no-history and --shallow to save ~5-8GB of git metadata
+          e sync --verbose --no-history --shallow
+          
+          echo "::group::Nuclear Cleanup of Test Data"
+          # These folders contain GBs of images/videos/tests we don't need for release
+          rm -rf ${{ github.workspace }}/electron/src/third_party/blink/web_tests
+          rm -rf ${{ github.workspace }}/electron/src/content/test/data
+          rm -rf ${{ github.workspace }}/electron/src/media/test/data
+          rm -rf ${{ github.workspace }}/electron/src/chrome/test/data
+          echo "Cleanup complete."
+          echo "::endgroup::"
+          
+          df -h /
 
       - name: Install pico.gn
         run: cp pico.gn ${{ github.workspace }}/electron/src/electron/build/args/pico.gn
