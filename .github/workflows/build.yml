@@ -95,8 +95,7 @@ jobs:
           # Hardening the sync:
           # 1. Use gclient directly via 'e d' to avoid --with_branch_heads and --with_tags 
           #    (which are forced by 'e sync' and causing timeouts/failures due to repo size).
-          # 2. Set --cache-dir=None to disable the git-cache and avoid the 'depth 10000' fetch.
-          # 3. Use --force, --no-history, and --shallow for the most efficient build footprint.
+          # 2. Use --force, --no-history, and --shallow for the most efficient build footprint.
           cd ${{ github.workspace }}/electron
 
           # Hardcode .gclient to skip several GBs of unnecessary test data
@@ -125,7 +124,6 @@ jobs:
             --force \
             --no-history \
             --shallow \
-            --cache-dir=None \
             --verbose
           
           echo "::group::Disk state after sync"
