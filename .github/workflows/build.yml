@@ -99,11 +99,10 @@ jobs:
           df -h /
           echo "::endgroup::"
 
-          # Hardening the sync:
-          # 1. Use gclient directly via 'e d' to avoid --with_branch_heads and --with_tags 
-          #    (which are forced by 'e sync' and causing timeouts/failures due to repo size).
-          # 2. Use --force, --no-history, and --shallow for the most efficient build footprint.
           cd ${{ github.workspace }}/electron
+
+          # Prevent gclient from trying to use a disk-heavy git cache
+          export GIT_CACHE_PATH=""
 
           # Hardcode .gclient to skip several GBs of unnecessary test data
           printf "%s\n" \
@@ -125,12 +124,15 @@ jobs:
             '    "custom_vars": {},' \
             '  },' \
             ']' \
-            'target_os = ["mac"]' > .gclient
+            'target_os = ["mac"]' \
+            'target_os_only = True' > .gclient
 
+          # We remove --no-history and --shallow because they often cause 
+          # Status 128 errors when the DEPS point to tags/commits that are 
+          # not at the tip of a branch.
           e d gclient sync \
             --force \
-            --no-history \
-            --shallow \
+            --no-tags \
             --verbose
           
           echo "::group::Disk state after sync"
