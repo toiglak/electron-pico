@@ -1,3 +1,5 @@
+logs/
+
 # Chromium checkout (huge)
 electron/src/
 

@@ -29,12 +29,12 @@ jobs:
           echo "::group::Disk before cleanup"
           df -h /
           echo "::endgroup::"
-          
+
           # 1. Surgical Xcode cleanup: Keep the currently selected Xcode, delete the rest.
           # GitHub macos-14 runners usually have one or two versions.
           CURRENT_XCODE=$(xcode-select -p)
           echo "Current Xcode: $CURRENT_XCODE"
-          
+
           # Delete known old versions that are NOT the current one
           for version in 13 14 15.0 15.1 15.2 15.3; do
             XCODE_PATH="/Applications/Xcode_${version}.app"
@@ -48,14 +48,14 @@ jobs:
           sudo rm -rf /Library/Developer/CoreSimulator /Users/runner/Library/Developer/CoreSimulator 2>/dev/null || true
           sudo rm -rf /usr/local/share/dotnet /opt/ghc /usr/local/lib/node_modules 2>/dev/null || true
           sudo rm -rf /Users/runner/Library/Android 2>/dev/null || true
-          
+
           # ARM-specific: Homebrew on M1 is in /opt/homebrew
           sudo rm -rf /opt/homebrew /usr/local/Homebrew /usr/local/Cellar 2>/dev/null || true
-          
+
           # Remove other pre-installed runtimes
           sudo rm -rf /usr/local/share/powershell /usr/share/swift /usr/local/share/boost 2>/dev/null || true
           sudo rm -rf /Library/Frameworks/Mono.framework /Library/Frameworks/Xamarin.Mac.framework 2>/dev/null || true
-          
+
           # 3. Ensure Rosetta 2 is installed (recommended by Electron docs for Arm64)
           sudo softwareupdate --install-rosetta --agree-to-license || true
 
@@ -69,7 +69,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install build-tools
         run: npm install -g @electron/build-tools
@@ -78,10 +78,10 @@ jobs:
         run: |
           # 1. Create the target directory structure for the custom args file
           mkdir -p ${{ github.workspace }}/electron/src/electron/build/args
-          
+
           # 2. Install our custom pico.gn args file
           cp pico.gn ${{ github.workspace }}/electron/src/electron/build/args/pico.gn
-          
+
           # 3. Initialize with 'pico' profile immediately.
           # This establishes the workspace structure and points the config to our custom args.
           e init pico-release \
@@ -127,13 +127,16 @@ jobs:
             'target_os = ["mac"]' \
             'target_os_only = True' > .gclient
 
-          # We remove --no-history and --shallow because they often cause 
-          # Status 128 errors when the DEPS point to tags/commits that are 
-          # not at the tip of a branch.
+          # Reduce parallelism to avoid OOM on 14GB RAM runners.
+          # Disable automatic GC to prevent heavy background processes during sync.
+          git config --global gc.auto 0
+
           e d gclient sync \
+            -j 4 \
             --force \
-            --verbose
-          
+            --verbose \
+            --delete_unversioned_trees
+
           echo "::group::Disk state after sync"
           df -h /
           echo "::endgroup::"
@@ -159,14 +162,14 @@ jobs:
         run: |
           mkdir -p dist-target
           OUT_DIR="${{ github.workspace }}/electron/src/out/${{ env.GN_OUT_DIR }}"
-          
+
           # Extract version from Electron source
           VERSION=$(node -p "require('${{ github.workspace }}/electron/src/electron/package.json').version")
           echo "ELECTRON_VERSION=$VERSION" >> $GITHUB_ENV
-          
+
           # Target pattern: electron-v${version}-${platformName}-${arch}.zip
           cp "${OUT_DIR}/dist.zip" "dist-target/electron-v${VERSION}-darwin-arm64.zip"
-          
+
           # Version and Size reports
           echo "v${VERSION}" > "dist-target/version"
           du -sh "${OUT_DIR}/Electron.app" > "dist-target/size-report.txt"
