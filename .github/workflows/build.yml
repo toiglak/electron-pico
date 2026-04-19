@@ -132,7 +132,6 @@ jobs:
           # not at the tip of a branch.
           e d gclient sync \
             --force \
-            --no-tags \
             --verbose
           
           echo "::group::Disk state after sync"
