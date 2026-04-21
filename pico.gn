@@ -178,7 +178,12 @@ v8_enable_webassembly = false
 # ===========================================================================
 # ELECTRON-SPECIFIC (from all.gn)
 # ===========================================================================
-# Note: These are already set by import("//electron/build/args/release.gn")
-# which imports all.gn. We omit them here to let the build system manage
 # ABI versions and core constants automatically.
+
+# ===========================================================================
+# RESOURCE CONSTRAINTS
+# ===========================================================================
+# Limit concurrent links to 1 to avoid OOM on 14GB RAM runners
+# during the heavy ThinLTO link stage.
+concurrent_links = 1
 

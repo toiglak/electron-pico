@@ -2,7 +2,16 @@
 
 This document tracks changes and optimizations made to the Electron Pico build process.
 
-## [Latest] - 2026-04-19
+## [Latest] - 2026-04-21
+
+### Infrastructure Scaling
+- **Runner Upgrade**: Switched from `macos-latest` to the high-capacity `macos-26-intel` runner.
+- **RAM Pressure Mitigation**: Added `concurrent_links=1` to GN arguments via the workflow initialization.
+- **Reasoning**: The ThinLTO linking stage is extremely memory-intensive. Doubling the available RAM and serializing the linkers ensures the build can complete without OOM crashes during the final link phase.
+
+---
+
+## [2026-04-19]
 
 ### Hardened Resource Management
 - **Reduced Parallelism**: Limited `gclient sync` to `-j 4`.

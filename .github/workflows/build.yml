@@ -20,7 +20,7 @@ env:
 
 jobs:
   build-macos:
-    runs-on: macos-latest
+    runs-on: macos-26-intel # 2026-era Intel runner with larger RAM capacity
     timeout-minutes: 360
 
     steps:
