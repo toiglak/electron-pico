@@ -2,7 +2,15 @@
 
 This document tracks changes and optimizations made to the Electron Pico build process.
 
-## [Latest] - 2026-04-22
+## [Latest] - 2026-04-22 @ 21:52
+
+### CI/CD Pipeline & Log Optimization
+- **Log Management**: Wrapped `e init` and `e sync` in GitHub Action groups (`::group::`). This collapses over 25MB of chatty progress bars and hook outputs into clean, toggleable sections in the UI.
+- **Azure CLI Fixes**:
+  - Fixed a fatal error (`[Errno 2] No such file or directory: '-'`) by switching from stdin streaming to a temporary file for blob uploads.
+  - Removed the redundant "Install Azure CLI" step as the environment already contains a pre-configured version.
+- **Resiliency**: Added `continue-on-error: true` to all Azure cache operations. This ensures that a transient storage outage or credential error doesn't block the actual build process.
+- **Disk Preservation**: Added immediate cleanup of the 6GB+ `.tar.zst` archive after upload to maximize space for the compilation phase.
 
 ### GN Configuration Fixes
 - **Rust Dependency**: Set `enable_rust = true`. Chromium 130+ (and recent toolchains) has made Rust a mandatory dependency for core libraries like `base`, and disabling it now triggers assertion failures.

@@ -72,14 +72,6 @@ jobs:
       - name: Install build-tools
         run: npm install -g @electron/build-tools
 
-      - name: Install Azure CLI
-        run: |
-          if ! command -v az &> /dev/null; then
-            echo "Azure CLI not found. Installing via Homebrew..."
-            brew install azure-cli
-          else
-            echo "Azure CLI is already installed."
-          fi
 
       - name: Restore source cache from Azure
         id: restore-cache
