@@ -49,8 +49,6 @@ jobs:
           sudo rm -rf /usr/local/share/dotnet /opt/ghc /usr/local/lib/node_modules 2>/dev/null || true
           sudo rm -rf /Users/runner/Library/Android 2>/dev/null || true
 
-          # ARM-specific: Homebrew on M1 is in /opt/homebrew
-          sudo rm -rf /opt/homebrew /usr/local/Homebrew /usr/local/Cellar 2>/dev/null || true
 
           # Remove other pre-installed runtimes
           sudo rm -rf /usr/local/share/powershell /usr/share/swift /usr/local/share/boost 2>/dev/null || true
@@ -160,16 +158,28 @@ jobs:
             'target_os = ["mac"]' \
             'target_os_only = True' > .gclient
 
-          # Reduce parallelism to avoid OOM on 14GB RAM runners.
-          # Disable automatic GC to prevent heavy background processes during sync.
+          # Increase Git tolerance for large transfers 
+          git config --global http.postBuffer 1048576000
+          git config --global core.deltaBaseCacheLimit 2G
           git config --global gc.auto 0
 
-          e d gclient sync \
-            -j 8 \
-            --verbose \
-            --delete_unversioned_trees
-
-
+          # Resilient sync: Lower parallelism to -j 4 and retry on failure
+          # status 128 is usually transient network/rate-limiting
+          MAX_RETRIES=5
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Sync attempt $i of $MAX_RETRIES..."
+            if e d gclient sync -j 4 --verbose --delete_unversioned_trees; then
+              echo "Sync completed successfully."
+              break
+            else
+              if [ $i -eq $MAX_RETRIES ]; then
+                echo "Sync failed after $MAX_RETRIES attempts."
+                exit 1
+              fi
+              echo "Sync failed. Waiting 60s before retry..."
+              sleep 60
+            fi
+          done
 
           echo "::group::Disk state after sync"
           df -h /

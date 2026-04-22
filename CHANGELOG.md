@@ -9,9 +9,18 @@ This document tracks changes and optimizations made to the Electron Pico build p
 - **Mac Compatibility**: Removed `enable_resource_allowlist_generation = true`. This flag is explicitly unsupported on macOS and causes GN to fail during the generation phase.
 - **Stability Warnings**: Added cautionary notes to `pico.gn` regarding high-risk "minimalist" flags like `v8_enable_i18n_support = false`.
 
-### Infrastructure Scaling
-- **Runner Upgrade**: Switched from `macos-latest` to the high-capacity `macos-26-intel` runner.
-- **Sync Optimization**: Optimized `gclient sync` to `-j 8` (a safe midpoint for 14GB RAM) and removed the redundant `--force` flag.
+### Infrastructure & CI Resiliency
+- **Source Caching**: Implemented a streaming Azure Blob Storage cache for the 140GB source tree. This will reduce sync times from ~3 hours to ~15 minutes after the first successful run.
+- **Sync Reliability**:
+  - Added a **5x retry loop** for `gclient sync` to handle transient network hangs (Error 128).
+  - Reduced sync parallelism to **`-j 4`** to prevent connection rate-limiting on Intel Mac runners.
+  - Increased `http.postBuffer` and `deltaBaseCacheLimit` for massive Git object transfers.
+- **Dependency Fix**: Added explicit Azure CLI (`az`) installation via Homebrew to the runner environment.
+
+### Build Target
+- **Stable Tracking**: Shifted the default build target from `main` (development) to **`41-x-y`** (latest stable Electron release).
+- **Variable Integration**: Fixed a bug where the `ELECTRON_BRANCH` variable was defined but unused; it is now correctly applied to both initialization and source synchronization.
+- **Sync Optimization**: Throttled `gclient sync` to **`-j 4`** to prevent network connection drops on Intel runners, and removed the redundant `--force` flag.
 - **Compiler Cache**: Integrated `sccache` with an **Azure Blob Storage** backend to support incremental builds across CI time-outs.
 
 
