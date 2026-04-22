@@ -154,3 +154,55 @@ Since we know it fits, here is how we can eventually cut your sync time from **3
     *   Run `e d gclient sync`. Since 99% of the files are already there, it will only download the latest commits.
 
 **Would you like me to add the "Snapshot" step to your [build.yml](cci:7://file:///Volumes/Repos/electron-pico/.github/workflows/build.yml:0:0-0:0) now, so that your very next successful run automatically saves the source code to Azure?** (It will make that specific run take a bit longer because of the upload, but all future runs will be much faster).
+
+---
+
+# Optimization Plan: Azure Source Caching for Electron Pico
+
+The "Sync source code" step currently takes 3+ hours because it performs thousands of git operations and downloads ~140GB of data from scratch. We can reduce this to ~20 minutes by using Azure Blob Storage as a strategic cache.
+
+## Core Strategy
+
+1.  **Streaming Restoration**: Use `az storage blob download` piped directly into `zstd` and `tar` to extract the source tree without saving the massive compressed file to disk.
+2.  **Incremental Sync**: After restoration, `e d gclient sync` will only need to fetch the small delta between the cached snapshot and the current `HEAD`.
+3.  **Intelligent Upload**: Only upload a new snapshot to Azure when the `DEPS` files (which define all sub-dependencies) have changed. This avoids "sending everything back and forth" on every run.
+
+## Workflow Integration Details
+
+### 1. Restoration (Before `gclient sync`)
+- Authenticate with Azure using existing secrets.
+- Check if `electron-src.tar.zst` exists in the container.
+- If it exists:
+    ```bash
+    az storage blob download --name electron-src.tar.zst --file - | zstd -d -T0 | tar -xf -
+    ```
+- This populates the `electron/` directory with a warm state.
+
+### 2. Intelligent Save (After Successful Build)
+- Only runs on the `main` branch.
+- Calculates a unique hash of the Electron and Chromium `DEPS` files.
+- Compares this against a small `electron-src.hash` file stored in Azure.
+- If the hash differs (or doesn't exist):
+    - Create a new archive, excluding the large `out/` directory.
+    - Stream directly to Azure:
+      ```bash
+      tar -cf - --exclude='electron/src/out' electron | zstd -T0 | az storage blob upload --name electron-src.tar.zst --file -
+      ```
+    - Update the `electron-src.hash` blob.
+
+## Benefits
+- **Time**: Restoring 60GB (compressed) at 100MB/s takes ~10 mins + extraction. Total estimated sync time: 25-30 mins vs 180 mins.
+- **Disk Space**: Streaming avoids needing an extra 60GB for the `.tar.zst` file, staying within the runner's ~200GB limit.
+- **Efficiency**: Only performs the heavy upload when dependencies actually change.
+
+---
+
+### Proposed Changes to `build.yml`
+
+I will now update the workflow to implement these steps.
+
+
+Since you mentioned deltas for the future, the reason I skipped them for now is that tarballs are significantly faster for the restoration phase on GitHub runners.
+
+Tools that do granular deltas (like azcopy sync or restic) have to perform a "handshake" (listing and stating) for every one of the 1 million+ files in the Chromium tree. On a CI runner, this cataloging process can actually take longer than simply downloading one giant streaming tarball at 100MB/s.
+

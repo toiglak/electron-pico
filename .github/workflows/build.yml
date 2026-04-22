@@ -74,6 +74,29 @@ jobs:
       - name: Install build-tools
         run: npm install -g @electron/build-tools
 
+      - name: Restore source cache from Azure
+        id: restore-cache
+        env:
+          AZ_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+          AZ_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
+          AZ_CONTAINER: ${{ secrets.AZURE_STORAGE_CONTAINER }}
+        run: |
+          if [ -z "$AZ_ACCOUNT" ]; then
+            echo "Azure secrets not found, skipping cache restore."
+            exit 0
+          fi
+
+          AZ_ARGS="--account-name $AZ_ACCOUNT --account-key $AZ_KEY --container-name $AZ_CONTAINER"
+          
+          echo "Checking for existing source snapshot in Azure..."
+          if az storage blob exists $AZ_ARGS --name electron-src.tar.zst --output tsv | grep -q True; then
+            echo "::group::Downloading and extracting source cache (Streaming)"
+            az storage blob download $AZ_ARGS --name electron-src.tar.zst --file - | zstd -d -T0 | tar -xf -
+            echo "::endgroup::"
+          else
+            echo "No existing cache found in Azure."
+          fi
+
       - name: Initialize build config
         run: |
           # 1. Create the target directory structure for the custom args file
@@ -142,6 +165,15 @@ jobs:
           df -h /
           echo "::endgroup::"
 
+      - name: Save source cache hash
+        id: cache-hash
+        run: |
+          # Detect if sources exist and hash them
+          if [ -f "electron/src/electron/DEPS" ]; then
+            HASH=$(shasum electron/src/electron/DEPS electron/src/DEPS | shasum | awk '{print $1}')
+            echo "current_hash=$HASH" >> $GITHUB_OUTPUT
+          fi
+
       - name: Install sccache
         run: |
           SCCACHE_VERSION=v0.8.2
@@ -203,3 +235,31 @@ jobs:
           path: dist-target/
           retention-days: 30
           if-no-files-found: error
+
+      - name: Update source cache in Azure
+        if: github.ref == 'refs/heads/main' && success()
+        env:
+          AZ_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+          AZ_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
+          AZ_CONTAINER: ${{ secrets.AZURE_STORAGE_CONTAINER }}
+          CURRENT_HASH: ${{ steps.cache-hash.outputs.current_hash }}
+        run: |
+          if [ -z "$AZ_ACCOUNT" ] || [ -z "$CURRENT_HASH" ]; then
+            echo "Missing secrets or hash, skipping cache update."
+            exit 0
+          fi
+
+          AZ_ARGS="--account-name $AZ_ACCOUNT --account-key $AZ_KEY --container-name $AZ_CONTAINER"
+          
+          # Check cached hash
+          CACHED_HASH=$(az storage blob download $AZ_ARGS --name electron-src.hash --file - 2>/dev/null || echo "none")
+          
+          if [ "$CURRENT_HASH" != "$CACHED_HASH" ]; then
+            echo "Source changed ($CACHED_HASH -> $CURRENT_HASH). Uploading new snapshot..."
+            # Stream tar to Azure, excluding the large 'out' directory
+            tar -cf - --exclude='electron/src/out' electron | zstd -T0 | az storage blob upload $AZ_ARGS --name electron-src.tar.zst --file - --overwrite
+            echo "$CURRENT_HASH" | az storage blob upload $AZ_ARGS --name electron-src.hash --file - --overwrite
+            echo "Cache updated successfully."
+          else
+            echo "Source unchanged. Skipping cache upload."
+          fi
