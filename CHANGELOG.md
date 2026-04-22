@@ -11,6 +11,8 @@ This document tracks changes and optimizations made to the Electron Pico build p
 ### Infrastructure Scaling
 - **Runner Upgrade**: Switched from `macos-latest` to the high-capacity `macos-26-intel` runner.
 - **Sync Optimization**: Optimized `gclient sync` to `-j 8` (a safe midpoint for 14GB RAM) and removed the redundant `--force` flag.
+- **Compiler Cache**: Integrated `sccache` with an **Azure Blob Storage** backend to support incremental builds across CI time-outs.
+
 
 - **RAM Pressure Mitigation**: Serialized linking is now handled natively by ThinLTO logic rather than manual GN overrides.
 

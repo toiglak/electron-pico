@@ -20,6 +20,10 @@ symbol_level = 0
 dcheck_always_on = false
 enable_dsyms = false
 
+# Enable sccache for faster incremental builds
+cc_wrapper = "sccache"
+
+
 # Optimization: favor size over absolute peak performance
 optimize_for_size = true
 
