@@ -2,6 +2,13 @@
 
 > TLDR 2 (cache source checkout): Maybe we could further speed up source sync by caching it?
 
+Realistically, how long will it take to update the Azure cache?
+
+- Upload time: Zstd-compressed Electron source is typically 6GB to 10GB. On a GitHub runner (which has high-speed access to Azure), the upload should take roughly 5--12 minutes.
+- Frequency: This only happens when the hash of `DEPS` changes (i.e., when you upgrade Electron version or Chromium is bumped). On regular commits, it skip the upload entirely.
+
+---
+
 The **Electron Build Tools** (`ref/build-tools`) do indeed download the macOS SDK, but this is **not** to support cross-compiling from Linux to macOS. Instead, it is used on macOS to ensure that the build uses a specific, known-good SDK version independently of the version of Xcode installed on the developer's system.
 
 ### Source File
@@ -130,28 +137,31 @@ if sys.platform != 'darwin':
 
 **Conclusion**: If you want to use the _Google way_, you aren't looking for a different tool; you are looking to set `force_mac_toolchain = true` and `target_os = "mac"` in your [pico.gn](cci:7://file:///Volumes/Repos/electron-pico/pico.gn:0:0-0:0), and then manually performing the "fetch" that `mac_toolchain.py` usually does for you (which is exactly what the code in `ref/build-tools` is doing).
 
+---
 
 ---
-----
+
 ---
 
 You are absolutely right. With **196Gi** available, we have plenty of "breathing room" for a source cache!
 
 Looking at your two logs side-by-side, we can actually see the "ghost" of the Electron source:
-*   **Before Sync**: 196Gi Avail
-*   **After Sync**: 56Gi Avail
-*   **Difference**: **140Gi**
 
-This confirms that your current checkout (even with the exclusions) is taking up about **140GB**. 
+- **Before Sync**: 196Gi Avail
+- **After Sync**: 56Gi Avail
+- **Difference**: **140Gi**
+
+This confirms that your current checkout (even with the exclusions) is taking up about **140GB**.
 
 ### The Plan for "Source Caching" in Azure:
+
 Since we know it fits, here is how we can eventually cut your sync time from **3 hours** down to **~15 minutes**:
 
 1.  **Step A (The current build)**: Let the workflow run once with our new `sccache` and `-j 8` optimizations.
 2.  **Step B (The Snapshot)**: Once the build finishes successfully (or even if it times out, as long as the sync finished), we can add a step to tar up that 140GB folder and upload it to your Azure Blob Storage as `electron-source-snapshot.tar.gz`.
 3.  **Step C (The Speedup)**: We then change the `Sync` step in your workflow to:
-    *   Download from Azure (streaming via `curl | tar`).
-    *   Run `e d gclient sync`. Since 99% of the files are already there, it will only download the latest commits.
+    - Download from Azure (streaming via `curl | tar`).
+    - Run `e d gclient sync`. Since 99% of the files are already there, it will only download the latest commits.
 
 **Would you like me to add the "Snapshot" step to your [build.yml](cci:7://file:///Volumes/Repos/electron-pico/.github/workflows/build.yml:0:0-0:0) now, so that your very next successful run automatically saves the source code to Azure?** (It will make that specific run take a bit longer because of the upload, but all future runs will be much faster).
 
@@ -170,27 +180,30 @@ The "Sync source code" step currently takes 3+ hours because it performs thousan
 ## Workflow Integration Details
 
 ### 1. Restoration (Before `gclient sync`)
+
 - Authenticate with Azure using existing secrets.
 - Check if `electron-src.tar.zst` exists in the container.
 - If it exists:
-    ```bash
-    az storage blob download --name electron-src.tar.zst --file - | zstd -d -T0 | tar -xf -
-    ```
+  ```bash
+  az storage blob download --name electron-src.tar.zst --file - | zstd -d -T0 | tar -xf -
+  ```
 - This populates the `electron/` directory with a warm state.
 
 ### 2. Intelligent Save (After Successful Build)
+
 - Only runs on the `main` branch.
 - Calculates a unique hash of the Electron and Chromium `DEPS` files.
 - Compares this against a small `electron-src.hash` file stored in Azure.
 - If the hash differs (or doesn't exist):
-    - Create a new archive, excluding the large `out/` directory.
-    - Stream directly to Azure:
-      ```bash
-      tar -cf - --exclude='electron/src/out' electron | zstd -T0 | az storage blob upload --name electron-src.tar.zst --file -
-      ```
-    - Update the `electron-src.hash` blob.
+  - Create a new archive, excluding the large `out/` directory.
+  - Stream directly to Azure:
+    ```bash
+    tar -cf - --exclude='electron/src/out' electron | zstd -T0 | az storage blob upload --name electron-src.tar.zst --file -
+    ```
+  - Update the `electron-src.hash` blob.
 
 ## Benefits
+
 - **Time**: Restoring 60GB (compressed) at 100MB/s takes ~10 mins + extraction. Total estimated sync time: 25-30 mins vs 180 mins.
 - **Disk Space**: Streaming avoids needing an extra 60GB for the `.tar.zst` file, staying within the runner's ~200GB limit.
 - **Efficiency**: Only performs the heavy upload when dependencies actually change.
@@ -201,8 +214,6 @@ The "Sync source code" step currently takes 3+ hours because it performs thousan
 
 I will now update the workflow to implement these steps.
 
-
 Since you mentioned deltas for the future, the reason I skipped them for now is that tarballs are significantly faster for the restoration phase on GitHub runners.
 
 Tools that do granular deltas (like azcopy sync or restic) have to perform a "handshake" (listing and stating) for every one of the 1 million+ files in the Chromium tree. On a CI runner, this cataloging process can actually take longer than simply downloading one giant streaming tarball at 100MB/s.
-

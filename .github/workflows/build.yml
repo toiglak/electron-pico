@@ -112,6 +112,7 @@ jobs:
           # 2. Install our custom pico.gn args file
           cp pico.gn ${{ github.workspace }}/electron/src/electron/build/args/pico.gn
 
+          echo "::group::Initializing with 'pico' profile"
           # 3. Initialize with 'pico' profile immediately.
           # This establishes the workspace structure and points the config to our custom args.
           e init pico-release \
@@ -122,12 +123,14 @@ jobs:
             --remote-build none \
             --use-https \
             -f
+          echo "::endgroup::"
 
           # Increase Git tolerance for large transfers 
           git config --global http.postBuffer 1048576000
           git config --global core.deltaBaseCacheLimit 2G
           git config --global gc.auto 0
 
+          echo "::group::Syncing source code (Resilient)"
           # Resilient sync: using 'e sync' to handle .gclient correctly while specifying the branch
           MAX_RETRIES=5
           for i in $(seq 1 $MAX_RETRIES); do
@@ -144,6 +147,7 @@ jobs:
               sleep 60
             fi
           done
+          echo "::endgroup::"
 
           echo "::group::Disk state after sync"
           df -h /
@@ -178,8 +182,13 @@ jobs:
           
           if [ "$CURRENT_HASH" != "$CACHED_HASH" ]; then
             echo "Source checkpoint triggered ($CACHED_HASH -> $CURRENT_HASH). Uploading..."
-            # Stream tar to Azure, excluding 'out' to keep the checkpoint lean
-            tar -cf - --exclude='electron/src/out' electron | zstd -T0 | az storage blob upload $AZ_ARGS --name electron-src.tar.zst --file - --overwrite
+            # Stream tar to zstd, then save to a temp file because 'az' upload from stdin is unreliable on some versions
+            tar -cf - --exclude='electron/src/out' electron | zstd -T0 > electron-src.tar.zst
+            az storage blob upload $AZ_ARGS --name electron-src.tar.zst --file electron-src.tar.zst --overwrite
+            
+            # Clean up to save space immediately
+            rm electron-src.tar.zst
+
             echo "$CURRENT_HASH" | az storage blob upload $AZ_ARGS --name electron-src.hash --file - --overwrite
             echo "Source checkpoint saved successfully."
           else
