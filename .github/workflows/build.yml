@@ -83,6 +83,7 @@ jobs:
 
       - name: Restore source cache from Azure
         id: restore-cache
+        continue-on-error: true
         env:
           AZ_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
           AZ_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
@@ -163,6 +164,8 @@ jobs:
           fi
 
       - name: Update source cache in Azure (Checkpoint)
+        id: save-cache
+        continue-on-error: true
         if: github.ref == 'refs/heads/main' && steps.cache-hash.outputs.current_hash != ''
         env:
           AZ_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
