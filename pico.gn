@@ -42,13 +42,10 @@ blink_symbol_level = 0
 v8_symbol_level = 0
 v8_enable_debugging_features = false
 
-# Disable Rust (saves space and toolchain complexity)
-enable_rust = false
 
 # Treat this like a real shipping build (no field trial testing configs)
 fieldtrial_testing_like_official_build = true
 
-# Extreme: Disable i18n (JS Intl APIs) to shave off ICU data
 v8_enable_i18n_support = false
 icu_use_data_file = false
 
@@ -174,7 +171,6 @@ enable_runtime_tracing = false
 enable_remoting = false
 
 # --- Resources ---
-enable_resource_allowlist_generation = true
 optimize_webui = true
 use_viz_debugger = false
 v8_enable_webassembly = false

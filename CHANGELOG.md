@@ -4,9 +4,10 @@ This document tracks changes and optimizations made to the Electron Pico build p
 
 ## [Latest] - 2026-04-22
 
-### GN Configuration Fix
-- **Error Resolution**: Removed manual `concurrent_links` setting from `pico.gn`.
-- **Reasoning**: Setting `concurrent_links` manually triggered a GN assertion error: `can't explicitly set concurrent_links with thinlto`. When `use_thin_lto=true`, Chromium's build system automatically manages link parallelism to avoid OOM, based on detectable system memory.
+### GN Configuration Fixes
+- **Rust Dependency**: Set `enable_rust = true`. Chromium 130+ (and recent toolchains) has made Rust a mandatory dependency for core libraries like `base`, and disabling it now triggers assertion failures.
+- **Mac Compatibility**: Removed `enable_resource_allowlist_generation = true`. This flag is explicitly unsupported on macOS and causes GN to fail during the generation phase.
+- **Stability Warnings**: Added cautionary notes to `pico.gn` regarding high-risk "minimalist" flags like `v8_enable_i18n_support = false`.
 
 ### Infrastructure Scaling
 - **Runner Upgrade**: Switched from `macos-latest` to the high-capacity `macos-26-intel` runner.
