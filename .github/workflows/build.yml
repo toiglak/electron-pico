@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ELECTRON_BRANCH: main
+  ELECTRON_BRANCH: 41-x-y
   GN_OUT_DIR: pico-release
   DEPOT_TOOLS_UPDATE: 1
   GIT_TERMINAL_PROMPT: 0
@@ -74,6 +74,15 @@ jobs:
       - name: Install build-tools
         run: npm install -g @electron/build-tools
 
+      - name: Install Azure CLI
+        run: |
+          if ! command -v az &> /dev/null; then
+            echo "Azure CLI not found. Installing via Homebrew..."
+            brew install azure-cli
+          else
+            echo "Azure CLI is already installed."
+          fi
+
       - name: Restore source cache from Azure
         id: restore-cache
         env:
@@ -111,6 +120,7 @@ jobs:
             -i pico \
             -o ${{ env.GN_OUT_DIR }} \
             --root ${{ github.workspace }}/electron \
+            --branch ${{ env.ELECTRON_BRANCH }} \
             --target-cpu arm64 \
             --remote-build none \
             --use-https \
@@ -132,7 +142,7 @@ jobs:
             'solutions = [' \
             '  {' \
             '    "name": "src/electron",' \
-            '    "url": "https://github.com/electron/electron",' \
+            '    "url": "https://github.com/electron/electron@${{ env.ELECTRON_BRANCH }}",' \
             '    "managed": False,' \
             '    "custom_deps": {' \
             '      "src/third_party/blink/web_tests": None,' \
