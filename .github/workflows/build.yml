@@ -132,10 +132,11 @@ jobs:
           git config --global gc.auto 0
 
           e d gclient sync \
-            -j 4 \
-            --force \
+            -j 8 \
             --verbose \
             --delete_unversioned_trees
+
+
 
           echo "::group::Disk state after sync"
           df -h /
