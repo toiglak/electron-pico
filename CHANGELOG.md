@@ -2,12 +2,16 @@
 
 This document tracks changes and optimizations made to the Electron Pico build process.
 
-## [Latest] - 2026-04-21
+## [Latest] - 2026-04-22
+
+### GN Configuration Fix
+- **Error Resolution**: Removed manual `concurrent_links` setting from `pico.gn`.
+- **Reasoning**: Setting `concurrent_links` manually triggered a GN assertion error: `can't explicitly set concurrent_links with thinlto`. When `use_thin_lto=true`, Chromium's build system automatically manages link parallelism to avoid OOM, based on detectable system memory.
 
 ### Infrastructure Scaling
 - **Runner Upgrade**: Switched from `macos-latest` to the high-capacity `macos-26-intel` runner.
-- **RAM Pressure Mitigation**: Added `concurrent_links=1` to GN arguments via the workflow initialization.
-- **Reasoning**: The ThinLTO linking stage is extremely memory-intensive. Doubling the available RAM and serializing the linkers ensures the build can complete without OOM crashes during the final link phase.
+- **RAM Pressure Mitigation**: Serialized linking is now handled natively by ThinLTO logic rather than manual GN overrides.
+
 
 ---
 

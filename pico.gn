@@ -180,10 +180,7 @@ v8_enable_webassembly = false
 # ===========================================================================
 # ABI versions and core constants automatically.
 
-# ===========================================================================
-# RESOURCE CONSTRAINTS
-# ===========================================================================
-# Limit concurrent links to 1 to avoid OOM on 14GB RAM runners
-# during the heavy ThinLTO link stage.
-concurrent_links = 1
+# Note: concurrent_links is managed automatically when use_thin_lto=true.
+# Manually setting it results in a GN assertion error.
+
 
