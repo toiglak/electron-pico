@@ -118,57 +118,21 @@ jobs:
             -i pico \
             -o ${{ env.GN_OUT_DIR }} \
             --root ${{ github.workspace }}/electron \
-            --branch ${{ env.ELECTRON_BRANCH }} \
             --target-cpu arm64 \
             --remote-build none \
             --use-https \
             -f
-
-      - name: Sync source code
-        run: |
-          echo "::group::Disk state before sync"
-          df -h /
-          echo "::endgroup::"
-
-          cd ${{ github.workspace }}/electron
-
-          # Prevent gclient from trying to use a disk-heavy git cache
-          export GIT_CACHE_PATH=""
-
-          # Hardcode .gclient to skip several GBs of unnecessary test data
-          printf "%s\n" \
-            'solutions = [' \
-            '  {' \
-            '    "name": "src/electron",' \
-            '    "url": "https://github.com/electron/electron@${{ env.ELECTRON_BRANCH }}",' \
-            '    "managed": False,' \
-            '    "custom_deps": {' \
-            '      "src/third_party/blink/web_tests": None,' \
-            '      "src/content/test/data": None,' \
-            '      "src/media/test/data": None,' \
-            '      "src/chrome/test/data": None,' \
-            '      "src/v8/test": None,' \
-            '      "src/third_party/hunspell_dictionaries": None,' \
-            '      "src/chrome/browser/resources/media_router/extension/test/data": None,' \
-            '      "src/third_party/breakpad/breakpad/src/processor/testdata": None,' \
-            '    },' \
-            '    "custom_vars": {},' \
-            '  },' \
-            ']' \
-            'target_os = ["mac"]' \
-            'target_os_only = True' > .gclient
 
           # Increase Git tolerance for large transfers 
           git config --global http.postBuffer 1048576000
           git config --global core.deltaBaseCacheLimit 2G
           git config --global gc.auto 0
 
-          # Resilient sync: Lower parallelism to -j 4 and retry on failure
-          # status 128 is usually transient network/rate-limiting
+          # Resilient sync: using 'e sync' to handle .gclient correctly while specifying the branch
           MAX_RETRIES=5
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Sync attempt $i of $MAX_RETRIES..."
-            if e d gclient sync -j 4 --verbose --delete_unversioned_trees; then
+            if e sync -j 4 --revision src/electron@${{ env.ELECTRON_BRANCH }} --delete_unversioned_trees; then
               echo "Sync completed successfully."
               break
             else
