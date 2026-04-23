@@ -17,6 +17,7 @@ env:
   DEPOT_TOOLS_UPDATE: 1
   GIT_TERMINAL_PROMPT: 0
   GCM_INTERACTIVE: never
+  GIT_CACHE_PATH: ""
 
 jobs:
   build-macos:

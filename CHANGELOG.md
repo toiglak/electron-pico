@@ -2,7 +2,12 @@
 
 This document tracks changes and optimizations made to the Electron Pico build process.
 
-## [Latest] - 2026-04-23 @ 08:18
+## [Latest] - 2026-04-23 @ 11:05
+
+### CI Reliability Fixes
+- **Git Cache**: Explicitly set `GIT_CACHE_PATH: ""` in the global environment. This bypasses the corrupted persistent Git cache on the runner (`fatal: bad object refs/remotes/origin/nikwen/fix-heap-profiling-flakes`), ensuring a clean checkout during the sync phase.
+
+## [2026-04-23] @ 08:33
 
 ### GN Configuration Fixes
 - **Supervised Users**: Set `enable_supervised_users = true` in `pico.gn`. Recent Chromium changes have made this a mandatory requirement for `//chrome/test:unit_tests` (which is reachable during the GN generation phase), even in minimal Electron builds.
