@@ -2,7 +2,12 @@
 
 This document tracks changes and optimizations made to the Electron Pico build process.
 
-## [Latest] - 2026-04-23 @ 11:05
+## [Latest] - 2026-04-23 @ 12:54
+
+### CI/CD Reliability Updates
+- **On-Failure Debugging Replacement**: Switched from `mxschmitt/action-tmate` to `lhotari/action-upterm@v1` because `tmate.io` servers frequently drop connections (`Connection reset by peer`). Although archived, `upterm` still operates and provides a more stable SSH proxy experience compared to the current `tmate` network.
+
+## [2026-04-23] @ 11:05
 
 ### CI Reliability & Debugging Fixes
 - **Git Cache Patch**: Set `GIT_CACHE_PATH: ""` globally to bypass corrupted runner caches and restore sync stability.

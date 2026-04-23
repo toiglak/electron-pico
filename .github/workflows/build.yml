@@ -271,8 +271,8 @@ jobs:
                -H "Click: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
                ntfy.sh/electron-pico-debug-iglak
 
-      - name: Setup tmate session (On Failure)
-        uses: mxschmitt/action-tmate@v3
+      - name: Setup upterm session (On Failure)
+        uses: lhotari/action-upterm@v1
         timeout-minutes: 15
         if: ${{ failure() }}
         with:
