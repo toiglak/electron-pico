@@ -2,7 +2,12 @@
 
 This document tracks changes and optimizations made to the Electron Pico build process.
 
-## [Latest] - 2026-04-23 @ 12:54
+## [Latest] - 2026-04-23 @ 12:55
+
+### CI Reliability & Debugging Fixes
+- **Git Cache Restoration Fix**: Invalidated the `electron-src.tar.zst` cache (renamed to `electron-src-v2.tar.zst`) and explicitly included `.git_cache` in the tar archive generation. Previously, the uploaded cache only contained the `electron` directory. This caused the restored git repositories to break because their objects' alternate paths pointed to a missing `.git_cache` directory, resulting in `gclient sync` failures ("unable to normalize alternate object path" and "bad object HEAD").
+
+## [2026-04-23] @ 12:54
 
 ### CI/CD Reliability Updates
 - **On-Failure Debugging Replacement**: Switched from `mxschmitt/action-tmate` to `lhotari/action-upterm@v1` because `tmate.io` servers frequently drop connections (`Connection reset by peer`). Although archived, `upterm` still operates and provides a more stable SSH proxy experience compared to the current `tmate` network.
