@@ -11,6 +11,7 @@ This document tracks changes and optimizations made to the Electron Pico build p
   - Removed the redundant "Generate build files" step. Since `e build` automatically handles project generation via `ensureGNGen`, this dedicated step was unnecessary and prone to CLI argument errors.
   - Removed the "Purge build objects" step to simplify the final packaging phase.
   - **Hardenened Runner Config**: Optimized Xcode cleanup logic with a dynamic loop and added multi-threaded decompression (`zstd -T0`) for faster source restoration. Standard `rm -rf` is retained for ephemeral VM cleanup to avoid dependency overhead.
+  - **Debugging Stability**: Switched to the official `owenthereal/action-upterm@v1` to resolve SSH permission issues encountered with the community fork.
 
 ## [2026-04-23] @ 12:55
 
