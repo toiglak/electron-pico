@@ -143,7 +143,7 @@ enable_background_tracing = false
 enable_click_to_call = false
 
 # --- Supervised users ---
-enable_supervised_users = false
+enable_supervised_users = true # required
 
 # --- Hangout services extension ---
 enable_hangout_services_extension = false

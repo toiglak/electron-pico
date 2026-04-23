@@ -2,7 +2,15 @@
 
 This document tracks changes and optimizations made to the Electron Pico build process.
 
-## [Latest] - 2026-04-22 @ 21:52
+## [Latest] - 2026-04-23 @ 08:18
+
+### GN Configuration Fixes
+- **Supervised Users**: Set `enable_supervised_users = true` in `pico.gn`. Recent Chromium changes have made this a mandatory requirement for `//chrome/test:unit_tests` (which is reachable during the GN generation phase), even in minimal Electron builds.
+
+### CI Artifacts & Caching
+- **Cache Size Monitoring**: Investigated Azure storage upload metrics. The `electron-src.tar.zst` snapshot was successfully uploaded at ~85 GiB (raw) / ~3.6 GiB (compressed), completing in approximately 4 minutes.
+
+## [2026-04-22] @ 21:52
 
 ### CI/CD Pipeline & Log Optimization
 - **Log Management**: Wrapped `e init` and `e sync` in GitHub Action groups (`::group::`). This collapses over 25MB of chatty progress bars and hook outputs into clean, toggleable sections in the UI.
