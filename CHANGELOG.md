@@ -6,6 +6,7 @@ This document tracks changes and optimizations made to the Electron Pico build p
 
 ### GN Configuration Fixes
 - **Supervised Users**: Set `enable_supervised_users = true` in `pico.gn`. Recent Chromium changes have made this a mandatory requirement for `//chrome/test:unit_tests` (which is reachable during the GN generation phase), even in minimal Electron builds.
+- **Dependency Alignment**: Explicitly disabled `enable_pdf_viewer` and `enable_electron_extensions` to match the disabled underlying features, preventing "Assertion Failed" errors during GN generation.
 
 ### CI Artifacts & Caching
 - **Cache Size Monitoring**: Investigated Azure storage upload metrics. The `electron-src.tar.zst` snapshot was successfully uploaded at ~85 GiB (raw) / ~3.6 GiB (compressed), completing in approximately 4 minutes.

@@ -65,9 +65,11 @@ enable_webrtc = false
 
 # --- Extensions / Chrome Apps ---
 enable_extensions = false
+enable_electron_extensions = false
 
 # --- PDF viewer ---
 enable_pdf = false
+enable_pdf_viewer = false
 
 # --- Media / Codecs ---
 # Override all.gn: we don't need proprietary codecs for a text editor
