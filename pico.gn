@@ -75,7 +75,7 @@ enable_pdf_viewer = false
 # Override all.gn: we don't need proprietary codecs for a text editor
 proprietary_codecs = false
 ffmpeg_branding = "Chromium"
-enable_library_cdms = false
+enable_library_cdms = true # may not be required, but set to `true` for now 
 
 # --- Widevine DRM ---
 enable_widevine = false

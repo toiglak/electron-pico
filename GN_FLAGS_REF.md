@@ -19,6 +19,7 @@
 - `enable_webrtc` - Set to `false`: Used to remove the real-time communication stack (video/audio calls).
 - `enable_autofill` - Set to `false`: Used to remove form-filling and credit card management logic.
 - `enable_widevine` - Set to `false`: Used to exclude the DRM content decryption module.
+- `enable_library_cdms` - Set to `true`: Required because Chromium's media stack (specifically `//media/cdm`) now has a hard assertion for this flag even when CDMs are not being used.
 - `enable_nacl` - Set to `false`: Used to exclude the deprecated Native Client sandboxing system.
 - `safe_browsing_mode` - Set to `0`: Used to disable background malware detection services.
 - `enable_extensions` - Set to `false`: Used to remove the Chromium extension and Chrome App runtime.

@@ -208,13 +208,6 @@ jobs:
           chmod +x /usr/local/bin/sccache
           sccache --version
 
-      - name: Generate build files
-        env:
-          SCCACHE_AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
-          SCCACHE_AZURE_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
-          SCCACHE_AZURE_CONTAINER: ${{ secrets.AZURE_STORAGE_CONTAINER }}
-        run: e build --only-gen
-
       - name: Build Electron
         env:
           SCCACHE_AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}

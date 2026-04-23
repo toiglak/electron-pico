@@ -2,7 +2,14 @@
 
 This document tracks changes and optimizations made to the Electron Pico build process.
 
-## [Latest] - 2026-04-23 @ 12:55
+## [Latest] - 2026-04-23 @ 15:43
+
+### GN Configuration & Build Tools CLI Fixes
+- **Media Stack Assertion Fix**: Enabled `enable_library_cdms = true` in `pico.gn`. This satisfies a hard assertion in Chromium's `//media/cdm` that was triggered even when CDMs were disabled, preventing project generation from completing.
+- **CLI Flag Correction**: Removed the non-existent `--only-gen` flag from `e build` commands in the CI workflow. This flag was incorrectly being passed to `ninja`, which resulted in build failures.
+- **Pipeline Simplification**: Removed the redundant "Generate build files" step. Since `e build` automatically handles project generation via `ensureGNGen`, this dedicated step was unnecessary and prone to CLI argument errors.
+
+## [2026-04-23] @ 12:55
 
 ### CI Reliability & Debugging Fixes
 - **Git Cache Restoration Fix**: Invalidated the `electron-src.tar.zst` cache (renamed to `electron-src-v2.tar.zst`) and explicitly included `.git_cache` in the tar archive generation. Previously, the uploaded cache only contained the `electron` directory. This caused the restored git repositories to break because their objects' alternate paths pointed to a missing `.git_cache` directory, resulting in `gclient sync` failures ("unable to normalize alternate object path" and "bad object HEAD").
