@@ -84,9 +84,9 @@ jobs:
           AZ_ARGS="--account-name $AZ_ACCOUNT --account-key $AZ_KEY --container-name $AZ_CONTAINER"
           
           echo "Checking for existing source snapshot in Azure..."
-          if az storage blob exists $AZ_ARGS --name electron-src.tar.zst --output tsv --no-progress | grep -i -q true; then
+          if az storage blob exists $AZ_ARGS --name electron-src.tar.zst --output tsv | grep -i -q true; then
             echo "::group::Downloading source cache"
-            az storage blob download $AZ_ARGS --name electron-src.tar.zst --file electron-src.tar.zst --no-progress
+            az storage blob download $AZ_ARGS --name electron-src.tar.zst --file electron-src.tar.zst
             echo "::endgroup::"
 
             echo "::group::Extracting source cache"
@@ -176,18 +176,20 @@ jobs:
           AZ_ARGS="--account-name $AZ_ACCOUNT --account-key $AZ_KEY --container-name $AZ_CONTAINER"
           
           # Check cached hash
-          CACHED_HASH=$(az storage blob download $AZ_ARGS --name electron-src.hash --file - --no-progress 2>/dev/null || echo "none")
+          az storage blob download $AZ_ARGS --name electron-src.hash --file electron-src.hash 2>/dev/null || echo "none" > electron-src.hash
+          CACHED_HASH=$(cat electron-src.hash)
           
           if [ "$CURRENT_HASH" != "$CACHED_HASH" ]; then
             echo "Source checkpoint triggered ($CACHED_HASH -> $CURRENT_HASH). Uploading..."
             # Stream tar to zstd quietly, then save to a temp file
             tar -cf - --exclude='electron/src/out' electron | zstd -T0 -q > electron-src.tar.zst
-            az storage blob upload $AZ_ARGS --name electron-src.tar.zst --file electron-src.tar.zst --overwrite --no-progress
+            az storage blob upload $AZ_ARGS --name electron-src.tar.zst --file electron-src.tar.zst --overwrite
             
             # Clean up to save space immediately
             rm electron-src.tar.zst
 
-            echo "$CURRENT_HASH" | az storage blob upload $AZ_ARGS --name electron-src.hash --file - --overwrite --no-progress
+            echo "$CURRENT_HASH" > electron-src.hash
+            az storage blob upload $AZ_ARGS --name electron-src.hash --file electron-src.hash --overwrite
             echo "Source checkpoint saved successfully."
           else
             echo "Snapshot matches Azure cache. No upload needed."
