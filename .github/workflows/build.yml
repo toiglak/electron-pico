@@ -37,16 +37,14 @@ jobs:
           echo "::endgroup::"
 
           # 1. Surgical Xcode cleanup: Keep the currently selected Xcode, delete the rest.
-          # GitHub macos-14 runners usually have one or two versions.
-          CURRENT_XCODE=$(xcode-select -p)
-          echo "Current Xcode: $CURRENT_XCODE"
+          CURRENT_XCODE=$(xcode-select -p | cut -d/ -f1-3)
+          echo "Current Xcode root: $CURRENT_XCODE"
 
-          # Delete known old versions that are NOT the current one
-          for version in 13 14 15.0 15.1 15.2 15.3; do
-            XCODE_PATH="/Applications/Xcode_${version}.app"
-            if [ -d "$XCODE_PATH" ] && [[ "$CURRENT_XCODE" != "$XCODE_PATH"* ]]; then
-              echo "Removing $XCODE_PATH"
-              sudo rm -rf "$XCODE_PATH"
+          # Find and delete ALL Xcode versions that are NOT the current one
+          for xcode_app in /Applications/Xcode*.app; do
+            if [[ -d "$xcode_app" ]] && [[ "$xcode_app" != "$CURRENT_XCODE" ]]; then
+              echo "Removing $xcode_app"
+              sudo rm -rf "$xcode_app"
             fi
           done
 
@@ -54,7 +52,6 @@ jobs:
           sudo rm -rf /Library/Developer/CoreSimulator /Users/runner/Library/Developer/CoreSimulator 2>/dev/null || true
           sudo rm -rf /usr/local/share/dotnet /opt/ghc /usr/local/lib/node_modules 2>/dev/null || true
           sudo rm -rf /Users/runner/Library/Android 2>/dev/null || true
-
 
           # Remove other pre-installed runtimes
           sudo rm -rf /usr/local/share/powershell /usr/share/swift /usr/local/share/boost 2>/dev/null || true
@@ -96,7 +93,7 @@ jobs:
 
             echo "::group::Extracting source cache"
             # Decompress and extract without streaming pipes to avoid 'unsupported format' errors
-            zstd -d -q --rm electron-src.tar.zst
+            zstd -d -q -T0 --rm electron-src.tar.zst
             tar -xf electron-src.tar
             rm electron-src.tar
             echo "Cache extracted successfully."
@@ -107,14 +104,19 @@ jobs:
 
       - name: Initialize build config
         run: |
-          # 1. Create the target directory structure for the custom args file
+          # 1. Increase Git tolerance for large transfers immediately
+          git config --global http.postBuffer 1048576000
+          git config --global core.deltaBaseCacheLimit 2G
+          git config --global gc.auto 0
+
+          # 2. Create the target directory structure for the custom args file
           mkdir -p ${{ github.workspace }}/electron/src/electron/build/args
 
-          # 2. Install our custom pico.gn args file
+          # 3. Install our custom pico.gn args file
           cp pico.gn ${{ github.workspace }}/electron/src/electron/build/args/pico.gn
 
           echo "::group::Initializing with 'pico' profile"
-          # 3. Initialize with 'pico' profile immediately.
+          # 4. Initialize with 'pico' profile immediately.
           # This establishes the workspace structure and points the config to our custom args.
           e init pico-release \
             -i pico \
@@ -126,10 +128,6 @@ jobs:
             -f
           echo "::endgroup::"
 
-          # Increase Git tolerance for large transfers 
-          git config --global http.postBuffer 1048576000
-          git config --global core.deltaBaseCacheLimit 2G
-          git config --global gc.auto 0
 
           echo "::group::Syncing source code (Resilient)"
           # Resilient sync: using 'e sync' to handle .gclient correctly while specifying the branch
@@ -219,15 +217,12 @@ jobs:
           sccache --show-stats
 
       - name: Build dist zip
+        env:
+          SCCACHE_AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+          SCCACHE_AZURE_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
+          SCCACHE_AZURE_CONTAINER: ${{ secrets.AZURE_STORAGE_CONTAINER }}
         run: e build --target //electron:electron_dist_zip
 
-      - name: Purge build objects to free space
-        run: |
-          echo "Zipping finished. Purging obj/ folder to free up ~30GB for the next steps."
-          OUT_DIR="${{ github.workspace }}/electron/src/out/${{ env.GN_OUT_DIR }}"
-          rm -rf "${OUT_DIR}/obj"
-          # Keep 'gen' just in case it's needed for the upload path or version checking
-          df -h /
 
       - name: Prepare Patterned Artifact for electron-builder
         run: |

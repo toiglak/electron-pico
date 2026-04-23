@@ -7,7 +7,10 @@ This document tracks changes and optimizations made to the Electron Pico build p
 ### GN Configuration & Build Tools CLI Fixes
 - **Media Stack Assertion Fix**: Enabled `enable_library_cdms = true` in `pico.gn`. This satisfies a hard assertion in Chromium's `//media/cdm` that was triggered even when CDMs were disabled, preventing project generation from completing.
 - **CLI Flag Correction**: Removed the non-existent `--only-gen` flag from `e build` commands in the CI workflow. This flag was incorrectly being passed to `ninja`, which resulted in build failures.
-- **Pipeline Simplification**: Removed the redundant "Generate build files" step. Since `e build` automatically handles project generation via `ensureGNGen`, this dedicated step was unnecessary and prone to CLI argument errors.
+- **Pipeline Simplification**: 
+  - Removed the redundant "Generate build files" step. Since `e build` automatically handles project generation via `ensureGNGen`, this dedicated step was unnecessary and prone to CLI argument errors.
+  - Removed the "Purge build objects" step to simplify the final packaging phase.
+  - **Hardenened Runner Config**: Optimized Xcode cleanup logic with a dynamic loop and added multi-threaded decompression (`zstd -T0`) for faster source restoration. Standard `rm -rf` is retained for ephemeral VM cleanup to avoid dependency overhead.
 
 ## [2026-04-23] @ 12:55
 
