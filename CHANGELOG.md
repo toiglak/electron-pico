@@ -4,8 +4,13 @@ This document tracks changes and optimizations made to the Electron Pico build p
 
 ## [Latest] - 2026-04-23 @ 11:05
 
-### CI Reliability Fixes
-- **Git Cache**: Explicitly set `GIT_CACHE_PATH: ""` in the global environment. This bypasses the corrupted persistent Git cache on the runner (`fatal: bad object refs/remotes/origin/nikwen/fix-heap-profiling-flakes`), ensuring a clean checkout during the sync phase.
+### CI Reliability & Debugging Fixes
+- **Git Cache Patch**: Set `GIT_CACHE_PATH: ""` globally to bypass corrupted runner caches and restore sync stability.
+- **On-Failure Debugging**: Integrated `mxschmitt/action-tmate` with a **15-minute timeout**.
+- **Push Notifications**: Added a failure notification step using **ntfy.sh**. 
+  - Real-time alerts sent to `ntfy.sh/electron-pico-debug-iglak`.
+  - Notifications include a direct link to the failing run for immediate action.
+  - Hardened with `limit-access-to-actor: true`.
 
 ## [2026-04-23] @ 08:33
 

@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run with tmate debug session'
+        type: boolean
+        default: false
+
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -100,6 +106,8 @@ jobs:
           else
             echo "No existing cache found in Azure."
           fi
+
+
 
       - name: Initialize build config
         run: |
@@ -257,3 +265,21 @@ jobs:
           path: dist-target/
           retention-days: 30
           if-no-files-found: error
+
+      - name: Notify on Failure (Push Notification)
+        if: ${{ failure() }}
+        run: |
+          curl -d "Build FAILED! SSH into the runner now to debug." \
+               -H "Title: Electron Pico Build Failure" \
+               -H "Priority: urgent" \
+               -H "Tags: warning,computer" \
+               -H "Click: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+               ntfy.sh/electron-pico-debug-iglak
+
+      - name: Setup tmate session (On Failure)
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 15
+        if: ${{ failure() }}
+        with:
+          limit-access-to-actor: true
+
