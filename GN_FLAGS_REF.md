@@ -1,0 +1,52 @@
+- `enable_supervised_users` - Set to `true`: Required because Chromium's `unit_tests` target (reachable during project generation) now has a hard assertion for this feature.
+- `enable_pdf_viewer` - Set to `false`: Required because the high-level PDF manager cannot be active if the underlying `enable_pdf` engine is disabled.
+- `enable_electron_extensions` - Set to `false`: Required because Electron's extension logic depends on the base `enable_extensions` flag which we disable for size.
+- `enable_rust` - Set to `true`: Required because recent Chromium versions (130+) have made Rust a mandatory internal dependency for the `//base` library.
+- `is_official_build` - Set to `true`: Required to trigger the production optimization pipeline, including symbol stripping and Dead Code Elimination (DCE).
+- `symbol_level` - Set to `0`: Required to remove all debug information, the largest contributor to binary size.
+- `blink_symbol_level` - Set to `0`: Required to strip symbols specifically from the Blink rendering engine.
+- `v8_symbol_level` - Set to `0`: Required to strip symbols specifically from the V8 JavaScript engine.
+- `optimize_for_size` - Set to `true`: Required to prioritize binary smallness over peak execution speed.
+- `use_thin_lto` - Set to `true`: Required to enable Link-Time Optimization for global code pruning across library boundaries.
+- `v8_enable_i18n_support` - Set to `false`: Used to remove ICU data (~10MB+) and the `Intl` JS API.
+- `v8_enable_webassembly` - Set to `false`: Used to strip the entire WebAssembly engine from the binary.
+- `v8_enable_debugging_features` - Set to `false`: Used to remove V8's internal profiling and debugging support logic.
+- `icu_use_data_file` - Set to `false`: Used to prevent the requirement of an external `.dat` file for internationalization.
+- `is_component_build` - Set to `false`: Required for release builds to produce a single executable instead of dozens of shared libraries.
+- `proprietary_codecs` - Set to `false`: Used to exclude H.264/AAC for legal compliance and size reduction.
+- `ffmpeg_branding` - Set to `"Chromium"`: Used to ensure only open-source codecs are compiled into FFmpeg.
+- `enable_printing` - Set to `false`: Used to remove the entire system-level printing and print-preview stack.
+- `enable_webrtc` - Set to `false`: Used to remove the real-time communication stack (video/audio calls).
+- `enable_autofill` - Set to `false`: Used to remove form-filling and credit card management logic.
+- `enable_widevine` - Set to `false`: Used to exclude the DRM content decryption module.
+- `enable_nacl` - Set to `false`: Used to exclude the deprecated Native Client sandboxing system.
+- `safe_browsing_mode` - Set to `0`: Used to disable background malware detection services.
+- `enable_extensions` - Set to `false`: Used to remove the Chromium extension and Chrome App runtime.
+- `use_viz_debugger` - Set to `false`: Used to remove debugging instrumentation from the GPU compositor.
+- `enable_message_center` - Set to `false`: Used to remove the Chromium notification center library.
+- `dcheck_always_on` - Set to `false`: Required for release builds to disable heavy runtime consistency checks.
+- `enable_dsyms` - Set to `false`: Used to prevent creation of external debug symbol files on macOS.
+- `cc_wrapper` - Set to `"sccache"`: Used to wrap the compiler for cloud-based build caching.
+- `thin_lto_enable_optimizations` - Set to `true`: Required to allow the linker to perform optimization passes during LTO.
+- `strip_absolute_paths_from_debug_symbols` - Set to `true`: Used to make builds reproducible and smaller by removing runner-specific paths.
+- `exclude_unwind_tables` - Set to `true`: Used to remove stack unwinding data (used for backtracing) for additional space savings.
+- `enable_iterator_debugging` - Set to `false`: Required to remove C++ standard library iterator safety checks.
+- `enable_av1` - Set to `false`: Used to remove the AV1 video codec library from the media stack.
+- `enable_vpx` - Set to `false`: Used to remove the VP8/VP9 video codec library.
+- `use_dawn` - Set to `false`: Used to remove the WebGPU and Dawn implementation stack.
+- `enable_vulkan` - Set to `false`: Used to remove the Vulkan graphics API backend.
+- `enable_swiftshader` - Set to `false`: Used to remove the 15MB+ software-rendering GPU fallback library.
+- `enable_paint_preview` - Set to `false`: Used to remove the "instant page loading" preview feature.
+- `enable_plugins` - Set to `false`: Used to remove legacy NPAPI/PPAPI plugin support.
+- `enable_reporting` - Set to `false`: Used to remove the Network Reporting API service.
+- `enable_background_tracing` - Set to `false`: Used to remove the background performance profiling service.
+- `enable_click_to_call` - Set to `false`: Used to remove telephony number detection logic.
+- `enable_speech_service` - Set to `false`: Used to remove the speech recognition engine.
+- `enable_hls_demuxer` - Set to `false`: Used to remove HLS video playback support.
+- `enable_identity_client` - Set to `false`: Used to remove Google account identity manager components.
+- `enable_background_mode` - Set to `false`: Used to prevent the app from auto-running in the tray or background.
+- `enable_offline_pages` - Set to `false`: Used to remove the offline page capture feature.
+- `enable_screen_ai` - Set to `false`: Used to remove local OCR and image analysis components.
+- `enable_service_discovery` - Set to `false`: Used to remove network service discovery logic.
+- `enable_mdns` - Set to `false`: Used to remove Multicast DNS support.
+- `optimize_webui` - Set to `true`: Required to minify internal resources (WebUI) for size reduction.
